@@ -19,28 +19,28 @@ myduomlia::bann::Bann::Bann() {
         m_learningrate = boost::lexical_cast<float>(settings["learningrate"]);
     m_inputnodes = boost::lexical_cast<int>(settings["inputnodes"]);
     m_outputnodes = boost::lexical_cast<int>(settings["outputnodes"]);
-    try{
-        for(auto hiddennodes : settings["hiddennodes"])
+    try {
+        for (auto hiddennodes : settings["hiddennodes"])
             m_hiddennodes.push_back(boost::lexical_cast<int>(hiddennodes));
-    }catch(...){
+    } catch (...) {
         std::cerr << "Can't parse configuration file" << std::endl;
     }
     srand((unsigned int) time(0));
     Eigen::MatrixXf mat = Eigen::MatrixXf::Random(m_hiddennodes[0], m_inputnodes);
     m_weights.push_back(mat);
-    for(size_t i = 1; i < m_hiddennodes.size(); i++){
+    for (size_t i = 1; i < m_hiddennodes.size(); i++) {
         mat = Eigen::MatrixXf::Random(m_hiddennodes[i], m_hiddennodes[i - 1]);
         m_weights.push_back(mat);
     }
     mat = Eigen::MatrixXf::Random(m_outputnodes, m_hiddennodes[m_hiddennodes.size() - 1]);
     m_weights.push_back(mat);
-    
+
 }
 
 Eigen::MatrixXf myduomlia::bann::Bann::calc(Eigen::MatrixXf & input) {
     Eigen::MatrixXf x = m_weights[0] * input;
     Eigen::MatrixXf final_outputs = x.unaryExpr(&sigmoid);
-    for(size_t i = 1; i < m_hiddennodes.size(); i++){
+    for (size_t i = 1; i < m_hiddennodes.size(); i++) {
         x = m_weights[i] * final_outputs;
         final_outputs = x.unaryExpr(&sigmoid);
     }
@@ -49,12 +49,12 @@ Eigen::MatrixXf myduomlia::bann::Bann::calc(Eigen::MatrixXf & input) {
     return final_outputs;
 }
 
-float myduomlia::bann::Bann::_train(Eigen::MatrixXf & input, Eigen::MatrixXf & output){
+float myduomlia::bann::Bann::_train(Eigen::MatrixXf & input, Eigen::MatrixXf & output) {
     Eigen::MatrixXf x = m_weights[0] * input;
     std::vector<Eigen::MatrixXf> vec_final_outputs;
     Eigen::MatrixXf final_outputs = x.unaryExpr(&sigmoid);
     vec_final_outputs.push_back(final_outputs);
-    for(size_t i = 1; i < m_hiddennodes.size(); i++){
+    for (size_t i = 1; i < m_hiddennodes.size(); i++) {
         x = m_weights[i] * final_outputs;
         final_outputs = x.unaryExpr(&sigmoid);
         vec_final_outputs.push_back(final_outputs);
@@ -62,33 +62,59 @@ float myduomlia::bann::Bann::_train(Eigen::MatrixXf & input, Eigen::MatrixXf & o
     x = m_weights[m_weights.size() - 1] * final_outputs;
     final_outputs = x.unaryExpr(&sigmoid);
     vec_final_outputs.push_back(final_outputs);
-    
+
     Eigen::MatrixXf output_errors = output - final_outputs;
-    float error = output_errors.sum();
+    float error = output_errors.squaredNorm();
     m_weights[m_weights.size() - 1] += m_learningrate * (output_errors.array() * final_outputs.array() * (1 - final_outputs.array())).matrix() * vec_final_outputs[vec_final_outputs.size() - 2].transpose();
-            
-    for(size_t i = m_weights.size() - 2; i > 0; i--){
+
+    for (size_t i = m_weights.size() - 2; i > 0; i--) {
         Eigen::MatrixXf hidden_errors = m_weights[i + 1].transpose() * output_errors;
         m_weights[i] += m_learningrate * (hidden_errors.array() * vec_final_outputs[i].array() * (1 - vec_final_outputs[i].array())).matrix() * vec_final_outputs[i - 1].transpose();
         output_errors = hidden_errors;
     }
     Eigen::MatrixXf input_errors = m_weights[1].transpose() * output_errors;
     m_weights[0] += m_learningrate * (input_errors.array() * vec_final_outputs[0].array() * (1 - vec_final_outputs[0].array())).matrix() * input.transpose();
-    
+
     return error;
 }
 
 void myduomlia::bann::Bann::train(const std::string & data_set) {
-    const int EPOCH = 10000;
-    for(size_t i = 0; i < EPOCH; i++){
-//        Иду по файлу и зачитываю построчно данные для обучения
-        Eigen::MatrixXf input(4, 1);
-        Eigen::MatrixXf output(4, 1);
-        input << 1, 0, 1, 1;
-        output << 1, 0, 1, 1;
-        float wrong = _train(input, output);
+    const int EPOCH = 5;
+    for (size_t i = 0; i < EPOCH; i++) {
+        std::ifstream is("train.bann");
+        if (!is.is_open()) {
+            std::cerr << "Can't train file" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        int count_samples, count_input_nodes, count_output_nodes;
+        is >> count_samples >> count_input_nodes >> count_output_nodes;
+        float wrong;
+        for (size_t j = 0; j < count_samples; j++) {
+            Eigen::MatrixXf input(count_input_nodes, 1);
+            Eigen::MatrixXf output(count_output_nodes, 1);
+            for (size_t k = 0; k < count_input_nodes; k++) {
+                float value;
+                is >> value;
+                input.row(k) << value;
+            }
+            for (size_t k = 0; k < count_output_nodes; k++) {
+                float value;
+                is >> value;
+                output.row(k) << value;
+            }
+            wrong = _train(input, output);
+        }
         std::cout << "EPOCH = " << i << " wrong = " << wrong << std::endl;
+        is.close();
     }
+    std::ofstream os("output.bann", std::ofstream::out);
+    if (!os.is_open()) {
+        std::cerr << "Can't output file" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    for (auto mat : m_weights) 
+        os << mat << std::endl;
+    os.close();
 
 }
 

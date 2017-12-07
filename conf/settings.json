@@ -1,7 +1,7 @@
 {
-    "inputnodes" : 4,
+    "inputnodes" : 784,
     "hiddennodes" : [8, 5],
-    "outputnodes" : 4,
+    "outputnodes" : 10,
     "learningrate" : 0.1
 }
 
