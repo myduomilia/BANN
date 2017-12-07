@@ -1,0 +1,8 @@
+{
+    "inputnodes" : 4,
+    "hiddennodes" : [8, 5],
+    "outputnodes" : 4,
+    "learningrate" : 0.1
+}
+
+

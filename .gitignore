@@ -1,0 +1,7 @@
+nbproject/*
+build/*
+*.o
+*~
+.project
+.cproject
+build
