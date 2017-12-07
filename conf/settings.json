@@ -1,6 +1,6 @@
 {
     "inputnodes" : 784,
-    "hiddennodes" : [8, 5],
+    "hiddennodes" : [350, 175],
     "outputnodes" : 10,
     "learningrate" : 0.1
 }
