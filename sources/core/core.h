@@ -34,7 +34,7 @@ namespace myduomlia {
             float _train(Eigen::MatrixXf & input, Eigen::MatrixXf & outpit);
 
         public:
-            Bann();
+            Bann(const std::string & solve);
             void train(const std::string & data_set);
             Eigen::MatrixXf calc(Eigen::MatrixXf & input);
         };

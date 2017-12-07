@@ -3,7 +3,7 @@
 #include "core/core.h"
 
 int main(int argc, char** argv) {
-    myduomlia::bann::Bann bann;
+    myduomlia::bann::Bann bann("solve.bann");
     
     bann.train("train.bann");
     

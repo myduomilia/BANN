@@ -1,6 +1,6 @@
 #include "core.h"
 
-myduomlia::bann::Bann::Bann() {
+myduomlia::bann::Bann::Bann(const std::string & solve) {
     json settings = parse_settings(read_configuration_file("settings.json"));
     if (settings.find("inputnodes") == settings.end()) {
         std::cerr << "Not found inputnodes" << std::endl;
@@ -26,13 +26,13 @@ myduomlia::bann::Bann::Bann() {
         std::cerr << "Can't parse configuration file" << std::endl;
     }
     srand((unsigned int) time(0));
-    Eigen::MatrixXf mat = Eigen::MatrixXf::Random(m_hiddennodes[0], m_inputnodes);
+    Eigen::MatrixXf mat = Eigen::MatrixXf::Random(m_hiddennodes[0], m_inputnodes).cwiseAbs() * (1 / std::sqrt(m_inputnodes));
     m_weights.push_back(mat);
     for (size_t i = 1; i < m_hiddennodes.size(); i++) {
-        mat = Eigen::MatrixXf::Random(m_hiddennodes[i], m_hiddennodes[i - 1]);
+        mat = Eigen::MatrixXf::Random(m_hiddennodes[i], m_hiddennodes[i - 1]).cwiseAbs() * (1 / std::sqrt(m_hiddennodes[i]));
         m_weights.push_back(mat);
     }
-    mat = Eigen::MatrixXf::Random(m_outputnodes, m_hiddennodes[m_hiddennodes.size() - 1]);
+    mat = Eigen::MatrixXf::Random(m_outputnodes, m_hiddennodes[m_hiddennodes.size() - 1]).cwiseAbs() * (1 / std::sqrt(m_hiddennodes[m_hiddennodes.size() - 1]));
     m_weights.push_back(mat);
 
 }
@@ -79,7 +79,7 @@ float myduomlia::bann::Bann::_train(Eigen::MatrixXf & input, Eigen::MatrixXf & o
 }
 
 void myduomlia::bann::Bann::train(const std::string & data_set) {
-    const int EPOCH = 5;
+    const int EPOCH = 100;
     for (size_t i = 0; i < EPOCH; i++) {
         std::ifstream is("train.bann");
         if (!is.is_open()) {
@@ -88,7 +88,7 @@ void myduomlia::bann::Bann::train(const std::string & data_set) {
         }
         int count_samples, count_input_nodes, count_output_nodes;
         is >> count_samples >> count_input_nodes >> count_output_nodes;
-        float wrong;
+        float wrong = 0.0;
         for (size_t j = 0; j < count_samples; j++) {
             Eigen::MatrixXf input(count_input_nodes, 1);
             Eigen::MatrixXf output(count_output_nodes, 1);
@@ -102,12 +102,12 @@ void myduomlia::bann::Bann::train(const std::string & data_set) {
                 is >> value;
                 output.row(k) << value;
             }
-            wrong = _train(input, output);
+            wrong += _train(input, output) / m_outputnodes;
         }
-        std::cout << "EPOCH = " << i << " wrong = " << wrong << std::endl;
+        std::cout << "EPOCH = " << i << " wrong = " << wrong / count_samples << std::endl;
         is.close();
     }
-    std::ofstream os("output.bann", std::ofstream::out);
+    std::ofstream os("solve.bann", std::ofstream::out);
     if (!os.is_open()) {
         std::cerr << "Can't output file" << std::endl;
         exit(EXIT_FAILURE);
