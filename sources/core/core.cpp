@@ -26,14 +26,49 @@ myduomlia::bann::Bann::Bann(const std::string & solve) {
         std::cerr << "Can't parse configuration file" << std::endl;
     }
     srand((unsigned int) time(0));
-    Eigen::MatrixXf mat = Eigen::MatrixXf::Random(m_hiddennodes[0], m_inputnodes).cwiseAbs() * (1 / std::sqrt(m_inputnodes));
-    m_weights.push_back(mat);
-    for (size_t i = 1; i < m_hiddennodes.size(); i++) {
-        mat = Eigen::MatrixXf::Random(m_hiddennodes[i], m_hiddennodes[i - 1]).cwiseAbs() * (1 / std::sqrt(m_hiddennodes[i]));
+
+    std::ifstream is("solve.bann");
+    if (is.is_open()) {
+        Eigen::MatrixXf mat = Eigen::MatrixXf(m_hiddennodes[0], m_inputnodes);
+        for(size_t i = 0; i < m_hiddennodes[0]; i++){
+            for(size_t j = 0; j < m_inputnodes; j++){
+                float val;
+                is >> val;
+                mat(i, j) = val;
+            }
+        }
+        m_weights.push_back(mat);
+        for (size_t i = 1; i < m_hiddennodes.size(); i++) {
+            mat = Eigen::MatrixXf(m_hiddennodes[i], m_hiddennodes[i - 1]);
+            for(size_t j = 0; j < m_hiddennodes[i]; j++){
+                for(size_t k = 0; k < m_hiddennodes[i - 1]; k++){
+                    float val;
+                    is >> val;
+                    mat(j, k) = val;
+                }
+            }
+            m_weights.push_back(mat);
+        }
+        mat = Eigen::MatrixXf(m_outputnodes, m_hiddennodes[m_hiddennodes.size() - 1]).cwiseAbs() * (1 / std::sqrt(m_hiddennodes[m_hiddennodes.size() - 1]));
+        for(size_t i = 0; i < m_outputnodes; i++){
+            for(size_t j = 0; j < m_hiddennodes[m_hiddennodes.size() - 1]; j++){
+                float val;
+                is >> val;
+                mat(i, j) = val;
+            }
+        }
+        m_weights.push_back(mat);
+        is.close();
+    } else {
+        Eigen::MatrixXf mat = Eigen::MatrixXf::Random(m_hiddennodes[0], m_inputnodes).cwiseAbs() * (1 / std::sqrt(m_inputnodes));
+        m_weights.push_back(mat);
+        for (size_t i = 1; i < m_hiddennodes.size(); i++) {
+            mat = Eigen::MatrixXf::Random(m_hiddennodes[i], m_hiddennodes[i - 1]).cwiseAbs() * (1 / std::sqrt(m_hiddennodes[i]));
+            m_weights.push_back(mat);
+        }
+        mat = Eigen::MatrixXf::Random(m_outputnodes, m_hiddennodes[m_hiddennodes.size() - 1]).cwiseAbs() * (1 / std::sqrt(m_hiddennodes[m_hiddennodes.size() - 1]));
         m_weights.push_back(mat);
     }
-    mat = Eigen::MatrixXf::Random(m_outputnodes, m_hiddennodes[m_hiddennodes.size() - 1]).cwiseAbs() * (1 / std::sqrt(m_hiddennodes[m_hiddennodes.size() - 1]));
-    m_weights.push_back(mat);
 
 }
 
@@ -112,7 +147,7 @@ void myduomlia::bann::Bann::train(const std::string & data_set) {
         std::cerr << "Can't output file" << std::endl;
         exit(EXIT_FAILURE);
     }
-    for (auto mat : m_weights) 
+    for (auto mat : m_weights)
         os << mat << std::endl;
     os.close();
 
