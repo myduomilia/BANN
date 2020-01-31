@@ -1,3 +1,3 @@
-# BANN
+# bann
 
 Simple Neural Network
